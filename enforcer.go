@@ -307,17 +307,20 @@ func (e *Enforcer) LoadPolicy() error {
 
 	if e.autoBuildRoleLinks {
 		needToRebuild = true
-		for _, rm := range e.rmMap {
-			err := rm.Clear()
-			if err != nil {
-				return err
-			}
+		newRmMap := make(map[string]rbac.RoleManager)
+
+		for ptype := range e.model["g"] {
+			newRmMap[ptype] = defaultrolemanager.NewRoleManager(10)
 		}
-		err = newModel.BuildRoleLinks(e.rmMap)
+
+		err = newModel.BuildRoleLinks(newRmMap)
+		e.rmMap = newRmMap
+
 		if err != nil {
 			return err
 		}
 	}
+
 	e.model = newModel
 	return nil
 }
@@ -551,7 +554,7 @@ func (e *Enforcer) enforce(matcher string, explains *[]string, rvals ...interfac
 	var effect effector.Effect
 	var explainIndex int
 
-	if policyLen := len(e.model["p"][pType].Policy); policyLen != 0 && strings.Contains(expString, pType + "_"){
+	if policyLen := len(e.model["p"][pType].Policy); policyLen != 0 && strings.Contains(expString, pType+"_") {
 		policyEffects = make([]effector.Effect, policyLen)
 		matcherResults = make([]float64, policyLen)
 
